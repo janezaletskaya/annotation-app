@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from PIL import Image
 import pandas as pd
+from datetime import datetime
 import gdown
 import zipfile
 import tempfile
@@ -103,16 +104,30 @@ def load_images_from_gdrive(gdrive_url, folder_name):
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_dir)
 
-        # Находим изображения
+        # Находим изображения (игнорируем служебные файлы macOS)
         images = []
         image_paths = {}
 
         for root, dirs, files in os.walk(extract_dir):
+            # Пропускаем папки __MACOSX
+            if '__MACOSX' in root:
+                continue
+
             for file in files:
+                # Пропускаем служебные файлы macOS
+                if file.startswith('._') or file.startswith('.DS_Store'):
+                    continue
+
                 if file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                     full_path = os.path.join(root, file)
-                    images.append(file)
-                    image_paths[file] = full_path
+                    # Проверяем, что файл действительно можно открыть как изображение
+                    try:
+                        with Image.open(full_path) as test_img:
+                            test_img.verify()  # Проверяем целостность
+                        images.append(file)
+                        image_paths[file] = full_path
+                    except Exception as e:
+                        print(f"Пропускаем поврежденный файл {file}: {e}")
 
         return images, image_paths
 
@@ -190,11 +205,25 @@ elif uploaded_zip:
         image_paths = {}
 
         for root, dirs, files in os.walk(extract_dir):
+            # Пропускаем папки __MACOSX
+            if '__MACOSX' in root:
+                continue
+
             for file in files:
+                # Пропускаем служебные файлы macOS
+                if file.startswith('._') or file.startswith('.DS_Store'):
+                    continue
+
                 if file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                     full_path = os.path.join(root, file)
-                    images.append(file)
-                    image_paths[file] = full_path
+                    # Проверяем, что файл действительно можно открыть как изображение
+                    try:
+                        with Image.open(full_path) as test_img:
+                            test_img.verify()  # Проверяем целостность
+                        images.append(file)
+                        image_paths[file] = full_path
+                    except Exception as e:
+                        print(f"Пропускаем поврежденный файл {file}: {e}")
 
         if not dataset_name:
             dataset_name = "uploaded_images"
